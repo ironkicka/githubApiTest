@@ -6,11 +6,13 @@ const repo = process.env.REPO;
 const pathToTarget = process.env.PATH_TO_TARGET;
 const octokit = new Octokit({ auth: token });
 
+
+// ********** commit 取得 ************
 const getCommits = (responseDataArray)=>{
     let count=0;
     let commits = [];
     //commitオブジェクトの配列の配列になっているので一旦flatにする
-    responseDataArray.flat().forEach(data =>{
+    responseDataArray.forEach(data =>{
         // data.commit.author.dateはコミットの時刻ではない．
         // data.commit.committer.dateをとるべし
         const date = new Date(`${data.commit.committer.date}`);
@@ -38,22 +40,70 @@ const getAWeekAgoISO8601StringJST = ()=>{
 
 const aWeekAgo = getAWeekAgoISO8601StringJST();
 
+// (async ()=> {
+//         let resultArr = [];
+//         let next_url;
+//         let api_limit_remaining;
+//         await octokit.request(`GET /repos/${owner}/${repo}/commits`, {
+//             since: aWeekAgo,
+//             //sha: "feat_4353",//"develop",指定しない場合、masterのみを見ることになる。
+//             path:"client_web/shared",
+//             per_page: 50
+//         }).then((res) => {
+//             resultArr = res.data
+//             api_limit_remaining = res.headers["x-ratelimit-remaining"]
+//             console.log(res.headers.link)
+//             const matches = /\<([^<>]+)\>; rel\="next"/.exec(res.headers.link);
+//             if (matches != null) {
+//                 console.log("matches1", matches)
+//                 next_url = matches[1]
+//             } else {
+//                 console.log("次のURLがありません")
+//                 next_url = null;
+//                 return;
+//             }
+//         }).catch((err) => {
+//             console.log(err)
+//         })
+//         while (next_url !== null) {
+//             await octokit.request(`${next_url}`, {}).then((res) => {
+//                 resultArr.push(res.data)
+//                 api_limit_remaining = res.headers["x-ratelimit-remaining"];
+//                 console.log(res.headers.link)
+//                 const matches = /\<([^<>]+)\>; rel\="next"/.exec(res.headers.link);
+//                 if (matches != null) {
+//                     console.log("matches2", matches)
+//                     next_url = matches[1]
+//                 } else {
+//                     console.log("次のURLがありません")
+//                     next_url = null;
+//                 }
+//             }).catch((err) => {
+//                 console.log(err)
+//             })
+//         }
+//         console.log(resultArr)
+//         //getCommits(resultArr);
+//         console.log("x-ratelimit-remaining",api_limit_remaining)
+//     }
+// )();
+// ********** commit 取得 ここまで************
+
+// ********** branch 取得 ***********
 (async ()=> {
-        let resultArr = [];
+        let resultArr =new Array();
         let next_url;
         let api_limit_remaining;
-        await octokit.request(`GET /repos/${owner}/${repo}/commits`, {
-            since: aWeekAgo,
-            sha: "develop",
-            path:"go/query",//"client_web/shared",
+        await octokit.request(`GET /repos/${owner}/${repo}/branches`, {
+            path:"client_web/shared",
             per_page: 50
         }).then((res) => {
-            resultArr = res.data
+            resultArr.push(res.data)
             api_limit_remaining = res.headers["x-ratelimit-remaining"]
-            console.log(res.headers.link)
+            //console.log(res.headers.link)
             const matches = /\<([^<>]+)\>; rel\="next"/.exec(res.headers.link);
             if (matches != null) {
-                console.log("matches1", matches)
+                //console.log("matches1", matches)
                 next_url = matches[1]
             } else {
                 console.log("次のURLがありません")
@@ -67,10 +117,10 @@ const aWeekAgo = getAWeekAgoISO8601StringJST();
             await octokit.request(`${next_url}`, {}).then((res) => {
                 resultArr.push(res.data)
                 api_limit_remaining = res.headers["x-ratelimit-remaining"];
-                console.log(res.headers.link)
+                //console.log(res.headers.link)
                 const matches = /\<([^<>]+)\>; rel\="next"/.exec(res.headers.link);
                 if (matches != null) {
-                    console.log("matches2", matches)
+                    //console.log("matches2", matches)
                     next_url = matches[1]
                 } else {
                     console.log("次のURLがありません")
@@ -80,10 +130,13 @@ const aWeekAgo = getAWeekAgoISO8601StringJST();
                 console.log(err)
             })
         }
-        getCommits(resultArr);
+        const result = [].concat.apply([],resultArr);
+        console.log(result.length);
         console.log("x-ratelimit-remaining",api_limit_remaining)
     }
 )();
+
+
     // let neededInfo = [];
     // for(let commit of commits){
     //     await octokit.request(`GET /repos/${owner}/${repo}/commits/${commit.id}`,{
